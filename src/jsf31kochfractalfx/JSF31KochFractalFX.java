@@ -5,8 +5,12 @@
 package jsf31kochfractalfx;
 
 import calculate.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -15,6 +19,7 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
@@ -55,6 +60,13 @@ public class JSF31KochFractalFX extends Application {
     private Canvas kochPanel;
     private final int kpWidth = 500;
     private final int kpHeight = 500;
+    
+    private ProgressBar barL;
+    private ProgressBar barR;
+    private ProgressBar barB;
+    private Label labelL;
+    private Label labelR;
+    private Label labelB;
     
     @Override
     public void start(Stage primaryStage) {
@@ -133,6 +145,21 @@ public class JSF31KochFractalFX extends Application {
         });
         grid.add(buttonFitFractal, 14, 6);
         
+        barL = new ProgressBar();
+        barR = new ProgressBar();
+        barB = new ProgressBar();
+        labelL = new Label("Left");
+        labelR = new Label("Right");
+        labelB = new Label("Bottom");
+        
+        grid.add(barL, 7, 0);
+        grid.add(barR, 7, 1);
+        grid.add(barB, 7, 2);
+        grid.add(labelL, 6, 0);
+        grid.add(labelR, 6, 1);
+        grid.add(labelB, 6, 2);
+
+        
         // Add mouse clicked event to Koch panel
         kochPanel.addEventHandler(MouseEvent.MOUSE_CLICKED,
             new EventHandler<MouseEvent>() {
@@ -207,6 +234,21 @@ public class JSF31KochFractalFX extends Application {
         gc.strokeLine(e1.X1,e1.Y1,e1.X2,e1.Y2);
     }
     
+    public void BindPropL(Task t){
+        barL.progressProperty().bind(t.progressProperty());
+        labelL.textProperty().bind(t.messageProperty());
+    }
+    
+    public void BindPropR(Task t){
+        barR.progressProperty().bind(t.progressProperty());
+        labelR.textProperty().bind(t.messageProperty());
+    }
+    
+    public void BindPropB(Task t){
+        barB.progressProperty().bind(t.progressProperty());
+        labelB.textProperty().bind(t.messageProperty());
+    }
+    
     public void setTextNrEdges(String text) {
         labelNrEdgesText.setText(text);
     }
@@ -219,13 +261,23 @@ public class JSF31KochFractalFX extends Application {
         labelDrawText.setText(text);
     }
     
-    public void requestDrawEdges() {
+    private AtomicBoolean isDrawing = new AtomicBoolean(false);
+    public void requestDrawEdges(){
+        requestDrawEdges(false);
+    }
+    public void requestDrawEdges(boolean force) {
+        //if(!force && !isDrawing.compareAndSet(false, true))return;
+        
         Platform.runLater(new Runnable(){
             @Override
             public void run() {
                 kochManager.drawEdges();
             }
         });
+    }
+    
+    public void doneDrawing(){
+        isDrawing.set(false);
     }
     
     private void increaseLevelButtonActionPerformed(ActionEvent event) {
