@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package jsf31kochfractalfx;
+package gui.jsf31kochfractalfx;
 
 import javafx.scene.paint.Color;
 

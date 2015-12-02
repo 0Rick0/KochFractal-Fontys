@@ -2,19 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package jsf31kochfractalfx;
+package gui.jsf31kochfractalfx;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -23,12 +17,12 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import timeutil.TimeStamp;
 
 /**
  *
@@ -60,7 +54,6 @@ public class JSF31KochFractalFX extends Application {
         
     @Override
     public void start(Stage primaryStage) {
-       
         // Define grid pane
         GridPane grid;
         grid = new GridPane();
@@ -106,7 +99,10 @@ public class JSF31KochFractalFX extends Application {
             if(result == null)return;
             Thread readThread = new Thread(()->{
                 try {
-                    DataInputStream inStream = new DataInputStream(new FileInputStream(result));
+                    TimeStamp ts = new TimeStamp();
+                    ts.setBegin();
+                    BufferedInputStream bin = new BufferedInputStream(new FileInputStream(result));
+                    DataInputStream inStream = new DataInputStream(bin);
                     int level = inStream.readInt();
                     Platform.runLater(()->clearKochPanel());
                     Platform.runLater(()->labelLevel.setText("Level: " + level));
@@ -116,6 +112,9 @@ public class JSF31KochFractalFX extends Application {
                         Edge e = new Edge(inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),Color.hsb(inStream.readDouble(),inStream.readDouble(),inStream.readDouble()));
                         Platform.runLater(()->drawEdge(e));
                     }
+                    ts.setEnd();
+
+                    System.out.println("read time: "+ ts.toString());
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
