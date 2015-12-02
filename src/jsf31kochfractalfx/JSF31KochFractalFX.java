@@ -4,17 +4,14 @@
  */
 package jsf31kochfractalfx;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.DataInput;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -23,12 +20,11 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.input.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import timeutil.TimeStamp;
 
 /**
  *
@@ -57,6 +53,8 @@ public class JSF31KochFractalFX extends Application {
     private Canvas kochPanel;
     private final int kpWidth = 500;
     private final int kpHeight = 500;
+    
+    private RandomAccessFile result = null;
         
     @Override
     public void start(Stage primaryStage) {
@@ -99,14 +97,24 @@ public class JSF31KochFractalFX extends Application {
         Button buttonOpenFile = new Button();
         buttonOpenFile.setText("Open File");
         buttonOpenFile.setOnAction((ActionEvent event)->{
-            FileChooser chooser = new FileChooser();
-            chooser.setTitle("Open edg file");
-            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("edg files","*.edg"));
-            File result = chooser.showOpenDialog(primaryStage);
-            if(result == null)return;
+//            FileChooser chooser = new FileChooser();
+//            chooser.setTitle("Open edg file");
+//            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("edg files","*.edg"));
+            
             Thread readThread = new Thread(()->{
                 try {
-                    DataInputStream inStream = new DataInputStream(new FileInputStream(result));
+                    if(result == null){
+                        try {
+                            result = new RandomAccessFile("C:\\Users\\rick-\\outFile.edg","r");
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                    if(result == null)return;
+                    result.seek(0);
+                    TimeStamp ts = new TimeStamp();
+                    ts.setBegin("begin");
+                    DataInput inStream = (DataInput)result;
                     int level = inStream.readInt();
                     Platform.runLater(()->clearKochPanel());
                     Platform.runLater(()->labelLevel.setText("Level: " + level));
@@ -114,8 +122,17 @@ public class JSF31KochFractalFX extends Application {
                     Platform.runLater(()->this.labelNrEdges.setText("Nr of edges: " + nrOfEdges));
                     for(int i = 0; i<nrOfEdges; i++){
                         Edge e = new Edge(inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),Color.hsb(inStream.readDouble(),inStream.readDouble(),inStream.readDouble()));
-                        Platform.runLater(()->drawEdge(e));
+                        if(i!=nrOfEdges-1){
+                            Platform.runLater(()->{drawEdge(e);});
+                        }else{
+                            Platform.runLater(()->{
+                                drawEdge(e);
+                                ts.setEnd("drawing");
+                                System.out.println(ts.toString());
+                            });
+                        }
                     }
+                    ts.setEnd("reading");
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
