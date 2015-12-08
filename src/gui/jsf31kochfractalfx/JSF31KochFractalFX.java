@@ -101,8 +101,8 @@ public class JSF31KochFractalFX extends Application {
                 try {
                     TimeStamp ts = new TimeStamp();
                     ts.setBegin();
-                    BufferedInputStream bin = new BufferedInputStream(new FileInputStream(result));
-                    DataInputStream inStream = new DataInputStream(bin);
+                    BufferedInputStream bin = new BufferedInputStream(new FileInputStream(result), 300);
+                    ObjectInputStream inStream = new ObjectInputStream(bin);
                     int level = inStream.readInt();
                     Platform.runLater(()->clearKochPanel());
                     Platform.runLater(()->labelLevel.setText("Level: " + level));
