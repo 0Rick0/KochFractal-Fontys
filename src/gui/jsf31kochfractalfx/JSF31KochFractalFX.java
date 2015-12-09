@@ -2,12 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package jsf31kochfractalfx;
+package gui.jsf31kochfractalfx;
 
 import java.io.DataInput;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -53,12 +54,11 @@ public class JSF31KochFractalFX extends Application {
     private Canvas kochPanel;
     private final int kpWidth = 500;
     private final int kpHeight = 500;
-    
+
     private RandomAccessFile result = null;
-        
+
     @Override
     public void start(Stage primaryStage) {
-       
         // Define grid pane
         GridPane grid;
         grid = new GridPane();
@@ -100,7 +100,7 @@ public class JSF31KochFractalFX extends Application {
 //            FileChooser chooser = new FileChooser();
 //            chooser.setTitle("Open edg file");
 //            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("edg files","*.edg"));
-            
+
             Thread readThread = new Thread(()->{
                 try {
                     if(result == null){
