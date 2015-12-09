@@ -5,9 +5,24 @@
 package jsf31kochfractalfx;
 
 import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchService;
+import java.nio.file.WatchEvent.Kind;
+import java.nio.file.WatchKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -96,10 +111,77 @@ public class JSF31KochFractalFX extends Application {
         grid.add(buttonFitFractal, 14, 6);
         Button buttonOpenFile = new Button();
         buttonOpenFile.setText("Open File");
-        buttonOpenFile.setOnAction((ActionEvent event)->{
-//            FileChooser chooser = new FileChooser();
-//            chooser.setTitle("Open edg file");
-//            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("edg files","*.edg"));
+        Thread t = new Thread(()->{
+            Path dir = new File("C:\\edges\\done").toPath();
+            try {
+                WatchService ws = FileSystems.getDefault().newWatchService();
+                
+                WatchKey k = dir.register(ws, ENTRY_MODIFY,ENTRY_CREATE,ENTRY_DELETE,OVERFLOW);
+                
+                while(true){
+                    System.out.println("Waiting");
+                    
+                    WatchKey wk = ws.take();
+                    System.out.println("Taken watchkey " + wk.toString());
+                    wk.pollEvents().forEach((WatchEvent<?> evt)->{
+                        if(evt.kind() == OVERFLOW){
+                            System.out.println("Error overflow!");
+                            return;
+                        }
+                        File fl2 = ((WatchEvent<Path>)evt).context().toFile();
+                        File fl = new File("C:\\edges\\done\\"+fl2.getName());
+                        System.out.println(evt.kind().name() + fl.toString());
+                        if(/*!fl.getName().contains("-done") ||*/ evt.kind() == ENTRY_DELETE) return;
+                        Thread readThread = new Thread(()->{
+                        try {
+                            
+                            TimeStamp ts = new TimeStamp();
+                            ts.setBegin("begin");
+                            
+                            DataInputStream inStream = new DataInputStream(new FileInputStream(fl));
+                            
+                            int level = inStream.readInt();
+                            
+                            Platform.runLater(()->clearKochPanel());
+                            Platform.runLater(()->labelLevel.setText("Level: " + level));
+                            int nrOfEdges = (int) (3 * Math.pow(4, level - 1));
+                            Platform.runLater(()->this.labelNrEdges.setText("Nr of edges: " + nrOfEdges));
+                            
+                            for(int i = 0; i<nrOfEdges; i++){
+                                Edge e = new Edge(inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),inStream.readDouble(),Color.hsb(inStream.readDouble(),inStream.readDouble(),inStream.readDouble()));
+                                if(i!=nrOfEdges-1){
+                                    Platform.runLater(()->{drawEdge(e);});
+                                }else{
+                                    Platform.runLater(()->{
+                                        drawEdge(e);
+                                        ts.setEnd("drawing");
+                                        System.out.println(ts.toString());
+                                    });
+                                    try {
+                                        inStream.close();
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                }
+                            }
+                            ts.setEnd("reading");
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+
+                    });
+                    readThread.start();
+                    wk.reset();
+                    });
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(JSF31KochFractalFX.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
             
             Thread readThread = new Thread(()->{
                 try {
@@ -142,7 +224,11 @@ public class JSF31KochFractalFX extends Application {
             });
             readThread.start();
         });
-        grid.add(buttonOpenFile,1,6);
+        t.start();
+        primaryStage.setOnCloseRequest((evnt)->{
+            t.stop();
+        });
+        //grid.add(buttonOpenFile,1,6);
                 
         // Add mouse clicked event to Koch panel
         kochPanel.addEventHandler(MouseEvent.MOUSE_CLICKED,
